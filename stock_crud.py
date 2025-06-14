@@ -7,6 +7,9 @@ stock_router = APIRouter()
 
 @stock_router.get('/view')
 async def list_all_stock(db: Session = Depends(get_db)):
+    """
+    list_all_stock puts everything from the Stock database into a list of dictionaries and returns them
+    """
     store_stock = db.query(Stock).order_by(Stock.id).all()
 
     if not store_stock:
@@ -26,11 +29,14 @@ async def add_product_to_stock(stock_info: StockModel = Depends(), db: Session =
     db.commit()
     db.refresh(add_product)
 
-    return {'successful': 'added the product to the stock'}
+    return {200: 'product successfully added to stock'}
 
-@stock_router.put('/update')
-async def update_product(id: int = Depends(), product_update: StockModel = Depends(), db: Session = Depends(get_db)):
+@stock_router.put('/update/{id}')
+async def update_products_stock(id: int, product_update: StockModel = Depends(), db: Session = Depends(get_db)):
     product = db.query(Stock).filter(Stock.id == id).first()
+
+    if not product:
+        raise HTTPException(status_code=404, detail=f'Product {id} not found make sure you use the correct id')
 
     product.name = product_update.name
     product.in_stock = product_update.in_stock
@@ -39,8 +45,15 @@ async def update_product(id: int = Depends(), product_update: StockModel = Depen
     db.commit()
     db.refresh(product)
 
-@stock_router.delete('/remove')
-async def remove_product_from_stock(id: int = Depends(), db: Session = Depends(get_db)):
+    return {200: 'product has been updated'}
+
+@stock_router.delete('/remove/{id}')
+async def remove_product_from_stock(id: int, db: Session = Depends(get_db)):
     product = db.query(Stock).filter(Stock.id==id).first()
 
+    if not product:
+        raise HTTPException(status_code=404, detail=f'Product {id} not found check that its the right id')
+
     db.delete(product)
+
+    return {200: 'Product was deleted'}
